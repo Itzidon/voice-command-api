@@ -1,26 +1,29 @@
+from typing import Any
+
 from fastapi import APIRouter, HTTPException, status
 
 from src.app.schemas.voice import Task, TaskCreate, TaskReplace, TaskUpdate
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
-tasks: list[Task] = []
+# Almacenamiento en memoria: cada tarea es un diccionario
+tasks: list[dict[str, Any]] = []
 
 
 @router.get("", response_model=list[Task])
-def get_tasks() -> list[Task]:
+def get_tasks() -> list[dict[str, Any]]:
     return tasks
 
 
 @router.post("", response_model=Task, status_code=status.HTTP_201_CREATED)
-def create_task(payload: TaskCreate) -> Task:
-    next_id = max((task.id for task in tasks), default=0) + 1
+def create_task(payload: TaskCreate) -> dict[str, Any]:
+    next_id = max((task["id"] for task in tasks), default=0) + 1
 
-    new_task = Task(
-        id=next_id,
-        title=payload.title,
-        done=payload.done,
-    )
+    new_task = {
+        "id": next_id,
+        "title": payload.title,
+        "done": payload.done,
+    }
 
     tasks.append(new_task)
     return new_task
@@ -30,14 +33,15 @@ def create_task(payload: TaskCreate) -> Task:
 def replace_task(
     task_id: int,
     payload: TaskReplace,
-) -> Task:
+) -> dict[str, Any]:
     for index, task in enumerate(tasks):
-        if task.id == task_id:
-            updated_task = Task(
-                id=task_id,
-                title=payload.title,
-                done=payload.done,
-            )
+        if task["id"] == task_id:
+            updated_task = {
+                "id": task_id,
+                "title": payload.title,
+                "done": payload.done,
+            }
+
             tasks[index] = updated_task
             return updated_task
 
@@ -51,14 +55,23 @@ def replace_task(
 def update_task(
     task_id: int,
     payload: TaskUpdate,
-) -> Task:
+) -> dict[str, Any]:
     for index, task in enumerate(tasks):
-        if task.id == task_id:
-            updated_task = Task(
-                id=task.id,
-                title=payload.title if payload.title is not None else task.title,
-                done=payload.done if payload.done is not None else task.done,
-            )
+        if task["id"] == task_id:
+            updated_task = {
+                "id": task["id"],
+                "title": (
+                    payload.title
+                    if payload.title is not None
+                    else task["title"]
+                ),
+                "done": (
+                    payload.done
+                    if payload.done is not None
+                    else task["done"]
+                ),
+            }
+
             tasks[index] = updated_task
             return updated_task
 
@@ -71,7 +84,7 @@ def update_task(
 @router.delete("/{task_id}")
 def delete_task(task_id: int) -> dict[str, str]:
     for index, task in enumerate(tasks):
-        if task.id == task_id:
+        if task["id"] == task_id:
             tasks.pop(index)
             return {"message": "Task deleted successfully"}
 
